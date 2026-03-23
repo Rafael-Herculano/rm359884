@@ -603,7 +603,7 @@ def render_metric(label: str, value: str, delta: str = "", up: bool = True):
     )
 
 
-def gauge_chart(score: float, title: str = "Score de Match"):
+def gauge_chart(score: float, title: str = "Score de Match", key: str = ""):
     if not HAS_PLOTLY:
         st.metric(title, f"{int(score * 100)}%")
         return
@@ -635,7 +635,7 @@ def gauge_chart(score: float, title: str = "Score de Match"):
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="DM Sans"),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=f"gauge_{key}")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -912,7 +912,7 @@ with tabs[1]:
             ):
                 col_gauge, col_det = st.columns([1, 2])
                 with col_gauge:
-                    gauge_chart(r["score"], "Score de Match")
+                    gauge_chart(r["score"], "Score de Match", key=r["codigo"])
 
                 with col_det:
                     st.markdown("**Breakdown por critério**")
