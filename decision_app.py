@@ -14,6 +14,16 @@ import re
 import warnings
 from pathlib import Path
 
+
+@st.cache_data(show_spinner=False)
+def load_json(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 warnings.filterwarnings("ignore")
 
 # ── Dependências opcionais ────────────────────────────────────────────────────
@@ -691,7 +701,7 @@ with st.spinner("Processando dados e treinando modelo..."):
     df_raw = build_dataset(jobs, prospects, applicants)
     df_fe = engineer_features(df_raw)
     df_fe, km = run_clustering(df_fe, n_clusters)
-    model, auc, report, importances, roc_data = train_model(df_fe)
+    model, auc, report, importances, roc_data = train_model(df_fe)  # ← adiciona isso
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -864,24 +874,30 @@ with tabs[1]:
     if not prosp_vaga:
         st.info("Nenhuma prospecção cadastrada para esta vaga.")
     else:
-        resultados = []
-        for p in prosp_vaga:
-            cid = str(p.get("codigo", ""))
-            cand = applicants.get(cid, {})
-            res = score_candidato_vaga(model, cand, vaga_data)
-            resultados.append(
-                {
-                    "codigo": cid,
-                    "nome": p.get("nome", "—"),
-                    "situacao": p.get("situacao_candidado", "—"),
-                    "recrutador": p.get("recrutador", "—"),
-                    "score": res["score"],
-                    "details": res["details"],
-                    "cand_data": cand,
-                }
-            )
 
-        resultados.sort(key=lambda x: x["score"], reverse=True)
+        @st.cache_data(show_spinner=False)
+        def calcular_scores_vaga(vaga_id, prosp_list, _model, _vaga_data, _applicants):
+            resultados = []
+            for p in prosp_list:
+                cid = str(p.get("codigo", ""))
+                cand = _applicants.get(cid, {})
+                res = score_candidato_vaga(_model, cand, _vaga_data)
+                resultados.append(
+                    {
+                        "codigo": cid,
+                        "nome": p.get("nome", "—"),
+                        "situacao": p.get("situacao_candidado", "—"),
+                        "recrutador": p.get("recrutador", "—"),
+                        "score": res["score"],
+                        "details": res["details"],
+                        "cand_data": cand,
+                    }
+                )
+            return sorted(resultados, key=lambda x: x["score"], reverse=True)
+
+        resultados = calcular_scores_vaga(
+            vaga_sel, prosp_vaga, model, vaga_data, applicants
+        )
         resultados_filtrados = [r for r in resultados if r["score"] * 100 >= score_min]
 
         st.markdown(
@@ -1110,7 +1126,9 @@ with tabs[2]:
 # TAB 3 — MODELO DE ML
 # ════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
-    st.markdown("## 🤖 Modelo de Machine Learning")
+    # st.markdown("## 🤖 Modelo de Machine Learning")
+    if st.button("🤖 Treinar Modelo"):
+        model, auc, report, importances, roc_data = train_model(df_fe)
 
     if model is None:
         st.warning(
