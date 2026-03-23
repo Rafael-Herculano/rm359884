@@ -194,4 +194,4 @@ O script imprime no terminal:
 
 [Github](https://github.com/Rafael-Herculano/rm359884)
 
-[Acesse o app no Streamlit Cloud](https://seu-link-aqui)
+[Acesse o app no Streamlit Cloud](https://rm359884.streamlit.app)
